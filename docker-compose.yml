@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: student_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    env_file:
+      - .env
+    networks:
+      - student_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: student_api
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      APP_HOST: ${APP_HOST}
+      APP_PORT: ${APP_PORT}
+      DEBUG: ${DEBUG}
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn main:app --host ${APP_HOST} --port ${APP_PORT} --reload"
+    networks:
+      - student_network
+
+volumes:
+  postgres_data:
+
+networks:
+  student_network:
+    driver: bridge

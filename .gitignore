@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+*.pyc
+.env
+*.sqlite3
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
